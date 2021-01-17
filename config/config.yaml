@@ -1,0 +1,292 @@
+%yaml 1.2
+
+---
+
+gpu: &gpu 0
+
+# 'result_dir' is the root directory of training results
+# 'folder_level' defines the directory structure to save training results
+# list type, e.g. ['data_name', 'method_name', 'train_prop'], the directory
+# structure can be:
+#    'result_dir'/
+#     |--- indian_pines/
+#     |    |--- 3d_cnn_hamida/
+#     |    |    |--- 0.05/
+#     |    |    |    |--- train.log
+#     |    |    |    |--- weight.pkl
+#     |    |    |    |--- pred_map.png
+#     |    |    |    ...
+#     |    |    |--- 0.10/
+#     |    |    |    ...
+#     |    |--- pavia_university/
+#     |    |    ...
+#     |--- 3d_cnn_hamida
+#     |    ...
+#     |--- accuracy.csv
+
+result_dir: &result_dir ./results
+folder_level: &folder_level
+  - data_name
+  - method_name
+  - train_prop
+
+data: &data
+  data_name: indian_pines
+  data_dir: !!str
+  target_dir: !!str
+  rgb_bands:
+    - 0
+    - 1
+    - 2
+  train_prop: 0.05
+  val_prop: 0.05
+
+train: &train
+  epoch: 1000
+  batch_size: 200
+  optimizer: Adam
+  optimizer_params:
+    lr: 0.0001
+
+3d_cnn_li:
+  method_name: 3D-CNN-Li
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    input_channels: 200
+    n_classes: 16
+    patch_size: 5
+  data:
+    <<: *data
+    patch_size: 5
+  train:
+    <<: *train
+    epoch: 3000
+    optimizer: SGD
+    optimizer_params:
+      lr: 0.01
+      momentum: 0.9
+      weight_decay: 0.0005
+    scheduler: StepLR
+    scheduler_params:
+      step_size: 500
+      gamma: 0.5
+
+3d_cnn_hamida:
+  method_name: 3D-CNN-Hamida
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    input_channels: 200
+    n_classes: 16
+    patch_size: 5
+  data:
+    <<: *data
+    patch_size: 5
+  train:
+    <<: *train
+    epoch: 1500
+    optimizer: SGD
+    optimizer_params:
+      lr: 0.01
+      momentum: 0.9
+      weight_decay: 0.0005
+    scheduler: MultiStepLR
+    scheduler_params:
+      milestones:
+        - 500
+        - 1400
+      gamma: 0.1
+
+deepfcn:
+  method_name: DeepFCN
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    in_channels: 200
+    n_classes: 17
+  data:
+    <<: *data
+    patch_size: 5
+  train:
+    <<: *train
+    epoch: 5000
+    criterion: CrossEntropy
+    criterion_params:
+      weight:
+        - 0
+    optimizer: SGD
+    optimizer_params:
+      lr: 0.001
+      momentum: 0.9
+      weight_decay: 0.0005
+
+semi_2d_cnn:
+  method_name: Semi-2D-CNN
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    input_channels: 200
+    n_classes: 17
+    patch_size: 9
+  data:
+    <<: *data
+    patch_size: 9
+  train:
+    <<: *train
+    epoch: 2000
+    patch_size: 9
+    batch_size: 100
+    optimizer: SGD
+    optimizer_params:
+      lr: 0.001
+
+ssrn:
+  method_name: SSRN
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  data:
+    <<: *data
+    val_prop: 0.2
+    patch_size: 7
+  train:
+    epoch: 200
+    batch_size: 16
+    lr: 0.001
+
+hybridsn:
+  method_name: HybridSN
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    output_units: 16
+  data:
+    <<: *data
+    patch_size: 25
+    n_pc: 30
+  train:
+    epoch: 100
+    batch_size: 256
+    lr: 0.001
+    decay: !!float 1e-06
+
+sae:
+  method_name: SAE
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  model:
+    encoder_num: 3
+    input_dim: 200
+    hidden_units: 100
+    n_classes: 16
+  data:
+    <<: *data
+  train:
+    ae_lr: 0.0001
+    sae_lr: 0.001
+    ae_epoch: 5000
+    sae_epoch: 10000
+    ae_batch: 10000
+    sae_batch: 10000
+
+
+my_dbn:
+  method_name: DBN
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  data:
+    <<: *data
+  train:
+    hidden_layers_structure:
+      - 256
+      - 256
+      - 256
+    learning_rate_rbm: 0.001
+    learning_rate: 0.1
+    n_epochs_rbm: 20
+    n_iter_backprop: 5000
+    batch_size: 32
+    activation_function: relu
+    optimization_algorithm: sgd
+    l2_regularization: 1
+    contrastive_divergence_iter: 1
+    dropout_p: 0
+
+svm:
+  method_name: SVM
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  data:
+    <<: *data
+  svm_params:
+    class_weight: balanced
+    probability: !!bool true
+  svm_grid_params:
+    -
+      kernel:
+        - rbf
+      gamma:
+        - 0.1
+        - 0.01
+        - 0.001
+      C:
+        - 1
+        - 10
+        - 100
+        - 1000
+    -
+      kernel:
+        - linear
+      C:
+        - 0.1
+        - 1
+        - 10
+        - 100
+        - 1000
+    -
+      kernel:
+        - poly
+      degree:
+        - 3
+      gamma:
+        - 0.1
+        - 0.01
+        - 0.001
+
+
+rf:
+  method_name: RandomForest
+  gpu: *gpu
+  result_dir: *result_dir
+  folder_level: *folder_level
+  data:
+    <<: *data
+  rf_params:
+    n_estimators:
+      - 150
+      - 250
+    max_features:
+      - 1
+      - 200
+    max_depth:
+      - 1
+      - 50
+  iter: 100
+
+mlp: null
+
+1d_cnn_chen: null
+
+2d_cnn_chen: null
+
+3d_cnn_chen: null
+
