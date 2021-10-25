@@ -2,14 +2,14 @@ Description
 -----------------
 This is a project that implemented several published methods of HSI 
 classification. Users can set parameters by editing `./common/config.yaml`, and 
-users need to modified the data directories by editing `./common.get_config.py`.
-Users run the code by:
+the data directories could be modified by editing `./common.get_config.py`.
+Run the code by:
 
 ```
 python main.py
 ```
 
-Users can change `main.py` according to their own needs.
+Users can modify the `main.py` to satisfy spesific requirements.
 
 Requirements
 ------------
